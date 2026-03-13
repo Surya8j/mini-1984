@@ -4,14 +4,14 @@
 
   "screenshot": {
     "enabled": true,
-    "sensitive_patterns": [kite by zerodha],
+    "sensitive_patterns": [],
     "ignore_patterns": ["Google Search", "- Google -", "google.com/search"]
   },
 
   "email": {
     "enabled": true,
     "personal_patterns": ["@gmail.com", "@yahoo.com", "@outlook.com", "@hotmail.com", "@protonmail.com", "@icloud.com", "@aol.com", "@yandex.com", "@mail.com"],
-    "work_patterns": [@zerodha.com]
+    "work_patterns": []
   },
 
   "log_path": ""
