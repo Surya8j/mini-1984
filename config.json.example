@@ -1,0 +1,18 @@
+{
+  "show_icon": true,
+  "warning_duration": 5,
+
+  "screenshot": {
+    "enabled": true,
+    "sensitive_patterns": [kite by zerodha],
+    "ignore_patterns": ["Google Search", "- Google -", "google.com/search"]
+  },
+
+  "email": {
+    "enabled": true,
+    "personal_patterns": ["@gmail.com", "@yahoo.com", "@outlook.com", "@hotmail.com", "@protonmail.com", "@icloud.com", "@aol.com", "@yandex.com", "@mail.com"],
+    "work_patterns": [@zerodha.com]
+  },
+
+  "log_path": ""
+}
