@@ -1,12 +1,8 @@
 {
   "name": "mini-1984",
-  "description": "Endpoint monitoring extension \u2014 screenshot detection on sensitive sites and personal email login detection. Logs events for SIEM ingestion.",
+  "description": "Endpoint monitoring extension — screenshot detection on sensitive sites and personal email login detection. Logs events for SIEM ingestion.",
   "uuid": "mini-1984@security.local",
   "url": "",
-  "shell-version": [
-    "42",
-    "43",
-    "44"
-  ],
+  "shell-version": ["42", "43", "44"],
   "version": 1
 }

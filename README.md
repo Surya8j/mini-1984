@@ -62,6 +62,7 @@ Triggers when a screenshot/screencast tool is used while a sensitive site is vis
 - Window monitor — detects screenshot tool windows (flameshot, gnome-screenshot, spectacle, etc.)
 - D-Bus monitor — catches built-in GNOME screenshot (PrtSc, Alt+PrtSc)
 - File monitor — watches for new screenshot/screencast files in resolved paths
+- Print monitor — detects browser print dialog (Ctrl+P) via `pgrep` process detection
 
 **File paths resolved at runtime:**
 - XDG user directories (`xdg-user-dir PICTURES/VIDEOS`)

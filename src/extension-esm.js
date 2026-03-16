@@ -72,12 +72,14 @@ class Mini1984Indicator extends PanelMenu.Button {
         this._dismissTimeoutId = null;
         this._windowSignalId = null;
         this._emailPollId = null;
+        this._printPollId = null;
         this._dbusWatchId = null;
         this._screenshotMonitors = [];
         this._isWarning = false;
         this._logPath = null;
         this._lastTriggerTime = 0;
         this._seenEmailTitles = new Set();
+        this._knownPrintPids = new Set();
 
         this._loadConfig();
         this._resolveLogPath();
@@ -102,6 +104,7 @@ class Mini1984Indicator extends PanelMenu.Button {
         if (this._config.screenshot.enabled) {
             this._startWindowMonitor();
             this._startScreenshotDBusMonitor();
+            this._startPrintMonitor();
         }
 
         if (this._config.email.enabled) {
@@ -256,6 +259,54 @@ class Mini1984Indicator extends PanelMenu.Button {
                 } catch (_e) { }
             }
         } catch (_e) { }
+    }
+
+    _startPrintMonitor() {
+        this._printPollId = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            500,
+            () => {
+                this._checkForPrintProcess();
+                return GLib.SOURCE_CONTINUE;
+            }
+        );
+    }
+
+    _checkForPrintProcess() {
+        try {
+            const [ok, stdout, stderr, exitCode] = GLib.spawn_command_line_sync(
+                'pgrep -f printing.mojom'
+            );
+
+            if (!ok || exitCode !== 0) return;
+
+            const output = new TextDecoder().decode(stdout).trim();
+            if (output.length === 0) return;
+
+            const pids = output.split('\n');
+            for (let i = 0; i < pids.length; i++) {
+                const pid = parseInt(pids[i].trim());
+                if (isNaN(pid) || this._knownPrintPids.has(pid)) continue;
+
+                this._knownPrintPids.add(pid);
+                this._onScreenshotDetected('print_monitor', 'browser-print');
+            }
+        } catch (_e) { }
+
+        const toDelete = [];
+        this._knownPrintPids.forEach(pid => {
+            try {
+                const statFile = Gio.File.new_for_path('/proc/' + pid + '/stat');
+                if (!statFile.query_exists(null)) {
+                    toDelete.push(pid);
+                }
+            } catch (_e) {
+                toDelete.push(pid);
+            }
+        });
+        for (let i = 0; i < toDelete.length; i++) {
+            this._knownPrintPids.delete(toDelete[i]);
+        }
     }
 
     _onScreenshotDetected(source, tool) {
@@ -423,9 +474,11 @@ class Mini1984Indicator extends PanelMenu.Button {
         if (this._windowSignalId) { global.display.disconnect(this._windowSignalId); this._windowSignalId = null; }
         if (this._dbusWatchId) { try { Gio.DBus.session.signal_unsubscribe(this._dbusWatchId); } catch (_e) { } this._dbusWatchId = null; }
         if (this._emailPollId) { GLib.source_remove(this._emailPollId); this._emailPollId = null; }
+        if (this._printPollId) { GLib.source_remove(this._printPollId); this._printPollId = null; }
         if (this._dismissTimeoutId) { GLib.source_remove(this._dismissTimeoutId); this._dismissTimeoutId = null; }
         if (this._screenshotMonitors) { for (let i = 0; i < this._screenshotMonitors.length; i++) { try { this._screenshotMonitors[i].cancel(); } catch (_e) { } } this._screenshotMonitors = []; }
         this._seenEmailTitles.clear();
+        this._knownPrintPids.clear();
         super.destroy();
     }
 });

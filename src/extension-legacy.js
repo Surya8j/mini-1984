@@ -68,12 +68,14 @@ class Mini1984Indicator extends PanelMenu.Button {
         this._dismissTimeoutId = null;
         this._windowSignalId = null;
         this._emailPollId = null;
+        this._printPollId = null;
         this._dbusWatchId = null;
         this._screenshotMonitors = [];
         this._isWarning = false;
         this._logPath = null;
         this._lastTriggerTime = 0;
         this._seenEmailTitles = new Set();
+        this._knownPrintPids = new Set();
 
         // --- Load config ---
         this._loadConfig();
@@ -102,6 +104,7 @@ class Mini1984Indicator extends PanelMenu.Button {
         if (this._config.screenshot.enabled) {
             this._startWindowMonitor();
             this._startScreenshotDBusMonitor();
+            this._startPrintMonitor();
         }
 
         if (this._config.email.enabled) {
@@ -301,6 +304,61 @@ class Mini1984Indicator extends PanelMenu.Button {
                 } catch (_e) { }
             }
         } catch (_e) { }
+    }
+
+    /* ================================================================== */
+    /*  SCREENSHOT DETECTION 3: Print Monitor                              */
+    /*  Scans Chrome processes for print subprocess (Ctrl+P)               */
+    /* ================================================================== */
+
+    _startPrintMonitor() {
+        this._printPollId = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            500,
+            () => {
+                this._checkForPrintProcess();
+                return GLib.SOURCE_CONTINUE;
+            }
+        );
+    }
+
+    _checkForPrintProcess() {
+        try {
+            // Use pgrep to find printing processes — lightweight, no /proc enumeration
+            const [ok, stdout, stderr, exitCode] = GLib.spawn_command_line_sync(
+                'pgrep -f printing.mojom'
+            );
+
+            if (!ok || exitCode !== 0) return;
+
+            const output = imports.byteArray.toString(stdout).trim();
+            if (output.length === 0) return;
+
+            const pids = output.split('\n');
+            for (let i = 0; i < pids.length; i++) {
+                const pid = parseInt(pids[i].trim());
+                if (isNaN(pid) || this._knownPrintPids.has(pid)) continue;
+
+                this._knownPrintPids.add(pid);
+                this._onScreenshotDetected('print_monitor', 'browser-print');
+            }
+        } catch (_e) { }
+
+        // Cleanup dead PIDs
+        const toDelete = [];
+        this._knownPrintPids.forEach(pid => {
+            try {
+                const statFile = Gio.File.new_for_path('/proc/' + pid + '/stat');
+                if (!statFile.query_exists(null)) {
+                    toDelete.push(pid);
+                }
+            } catch (_e) {
+                toDelete.push(pid);
+            }
+        });
+        for (let i = 0; i < toDelete.length; i++) {
+            this._knownPrintPids.delete(toDelete[i]);
+        }
     }
 
     /* ================================================================== */
@@ -564,6 +622,10 @@ class Mini1984Indicator extends PanelMenu.Button {
             GLib.source_remove(this._emailPollId);
             this._emailPollId = null;
         }
+        if (this._printPollId) {
+            GLib.source_remove(this._printPollId);
+            this._printPollId = null;
+        }
         if (this._dismissTimeoutId) {
             GLib.source_remove(this._dismissTimeoutId);
             this._dismissTimeoutId = null;
@@ -575,6 +637,7 @@ class Mini1984Indicator extends PanelMenu.Button {
             this._screenshotMonitors = [];
         }
         this._seenEmailTitles.clear();
+        this._knownPrintPids.clear();
         super.destroy();
     }
 });
