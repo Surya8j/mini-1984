@@ -438,10 +438,11 @@ class Mini1984Indicator extends PanelMenu.Button {
         }
 
         this._isWarning = true;
-        this._icon.set_text(':(');
-        this._icon.set_style('font-weight: bold; font-size: 14px; color: #ff5555;');
 
-        if (!this._config.show_icon) this.show();
+        if (this._config.show_icon) {
+            this._icon.set_text(':(');
+            this._icon.set_style('font-weight: bold; font-size: 14px; color: #ff5555;');
+        }
 
         this._dismissTimeoutId = GLib.timeout_add(
             GLib.PRIORITY_DEFAULT,
@@ -451,10 +452,11 @@ class Mini1984Indicator extends PanelMenu.Button {
     }
 
     _hideWarning() {
-        this._icon.set_text(':)');
-        this._icon.set_style('font-weight: bold; font-size: 14px; color: #aaaaaa;');
+        if (this._config.show_icon) {
+            this._icon.set_text(':)');
+            this._icon.set_style('font-weight: bold; font-size: 14px; color: #aaaaaa;');
+        }
         this._isWarning = false;
-        if (!this._config.show_icon) this.hide();
     }
 
     _logEvent(event) {
